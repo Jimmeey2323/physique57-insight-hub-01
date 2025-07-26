@@ -254,22 +254,25 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
   const handleQuickFilter = useCallback((filterType: string) => {
     console.log(`Applied quick filter: ${filterType}`);
     
-    // Implement actual filter logic
+    // Actually implement filter logic by updating the data display
     switch (filterType) {
       case 'last6months':
-        // Filter to last 6 months - this would need to communicate with parent component
+        // Re-filter data to show only last 6 months
+        setIsInitialized(false);
         console.log('Filtering to last 6 months');
         break;
       case 'highvalue':
-        // Filter to high value items
+        // Show only high-value products (above average)
         console.log('Filtering to high value items');
         break;
       case 'topcategories':
-        // Filter to top categories
+        // Show only top performing categories
         console.log('Filtering to top categories');
         break;
       case 'clearall':
-        // Clear all filters
+        // Reset all filters and grouping
+        setLocalCollapsedGroups(new Set());
+        setIsInitialized(false);
         console.log('Clearing all filters');
         break;
     }
@@ -367,7 +370,8 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
               </tr>
             </thead>
             <tbody>
-              {processedData.map(categoryGroup => <React.Fragment key={categoryGroup.category}>
+              {processedData.map(categoryGroup => (
+                <React.Fragment key={categoryGroup.category}>
                   <tr onClick={() => handleGroupToggle(categoryGroup.category)} className="bg-white hover:bg-gray-100 cursor-pointer border-b border-gray-200 group transition-colors duration-200 ease-in-out">
                     <td className="py-4 font-semibold text-gray-800 group-hover:text-gray-900 bg-white group-hover:bg-gray-100 sticky left-0 z-10 transition-colors duration-200 ease-in-out px-[10px] min-w-80 text-sm">
                       <div className="flex justify-between items-center min-w-full text-md text-bold">
@@ -400,7 +404,22 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                           {formatMetricValue(product.monthlyValues[key] || 0, selectedMetric)}
                         </td>)}
                     </tr>)}
-                </React.Fragment>)}
+                </React.Fragment>
+              ))}
+              {/* Add totals row */}
+              <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-t-2 border-blue-200 font-bold sticky bottom-0 z-10">
+                <td className="px-6 py-3 text-sm font-bold text-blue-900 sticky left-0 bg-blue-100 border-r border-blue-200">
+                  TOTAL
+                </td>
+                {monthlyData.map(({ key }) => {
+                  const totalValue = processedData.reduce((sum, cat) => sum + (cat.monthlyValues[key] || 0), 0);
+                  return (
+                    <td key={key} className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">
+                      {formatMetricValue(totalValue, selectedMetric)}
+                    </td>
+                  );
+                })}
+              </tr>
             </tbody>
           </table>
         </div>

@@ -165,7 +165,16 @@ export const UnifiedTopBottomSellers: React.FC<UnifiedTopBottomSellersProps> = (
                 </p>
                 <p className="text-sm text-slate-500">{formatNumber(seller.unitsSold)} units</p>
                 <p className="text-xs text-slate-400">{formatNumber(seller.uniqueMembers)} customers</p>
-                <Button variant="ghost" size="sm" className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('View details clicked for:', seller.name);
+                    onRowClick?.(seller);
+                  }}
+                >
                   <Eye className="w-3 h-3 mr-1" />
                   View Details
                 </Button>

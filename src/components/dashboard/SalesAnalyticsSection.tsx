@@ -14,7 +14,7 @@ import { MonthOnMonthTable } from './MonthOnMonthTable';
 import { ProductPerformanceTable } from './ProductPerformanceTable';
 import { CategoryPerformanceTable } from './CategoryPerformanceTable';
 import { SalesAnimatedMetricCards } from './SalesAnimatedMetricCards';
-import { SalesInteractiveCharts } from './SalesInteractiveCharts';
+import { SalesCharts } from './sales/Charts';
 import { SoldByMonthOnMonthTable } from './SoldByMonthOnMonthTable';
 import { PaymentMethodMonthOnMonthTable } from './PaymentMethodMonthOnMonthTable';
 import { SalesData, FilterOptions, MetricCardData, YearOnYearMetricType } from '@/types/dashboard';
@@ -60,11 +60,17 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
 
   // Helper function to filter data by date range and other filters
   const applyFilters = (rawData: SalesData[], includeHistoric: boolean = false) => {
+    if (!rawData || rawData.length === 0) return [];
+    
     let filtered = rawData;
 
     // Apply location filter first
     filtered = filtered.filter(item => {
-      const locationMatch = activeLocation === 'kwality' ? item.calculatedLocation === 'Kwality House, Kemps Corner' : activeLocation === 'supreme' ? item.calculatedLocation === 'Supreme HQ, Bandra' : item.calculatedLocation === 'Kenkere House';
+      const locationMatch = activeLocation === 'kwality' ? 
+        item.calculatedLocation === 'Kwality House, Kemps Corner' : 
+        activeLocation === 'supreme' ? 
+          item.calculatedLocation === 'Supreme HQ, Bandra' : 
+          item.calculatedLocation === 'Kenkere House';
       return locationMatch;
     });
 
@@ -129,7 +135,26 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
 
   const handleRowClick = (rowData: any) => {
     console.log('Row clicked with data:', rowData);
-    setDrillDownData(rowData);
+    
+    // Enhance the data for proper drill-down display
+    const enhancedData = {
+      ...rowData,
+      name: rowData.name || rowData.soldBy || rowData.paymentMethod || rowData.product || 'Unknown',
+      totalValue: rowData.totalValue || rowData.totalRevenue || 0,
+      transactions: rowData.transactions || rowData.totalTransactions || 0,
+      uniqueMembers: rowData.uniqueMembers || 0,
+      atv: rowData.atv || (rowData.totalValue && rowData.transactions ? rowData.totalValue / rowData.transactions : 0),
+      auv: rowData.auv || 0,
+      asv: rowData.asv || 0,
+      upt: rowData.upt || 0,
+      grossRevenue: rowData.totalValue || rowData.totalRevenue || 0,
+      totalChange: rowData.growth || 0,
+      months: rowData.monthlyValues || {},
+      calculation: 'Based on sales data and performance metrics',
+      description: 'Detailed performance analysis including revenue, transactions, and customer metrics'
+    };
+    
+    setDrillDownData(enhancedData);
     setDrillDownType('product');
   };
 
@@ -189,7 +214,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
               <SalesAnimatedMetricCards data={filteredData} />
 
               {/* Interactive Charts */}
-              <SalesInteractiveCharts data={allHistoricData} />
+              <SalesCharts data={allHistoricData} />
 
               {/* Top/Bottom Performers */}
               <UnifiedTopBottomSellers data={filteredData} />
@@ -284,22 +309,34 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
                 <TabsContent value="soldByAnalysis" className="mt-8">
                   <section className="space-y-4">
                     <h2 className="text-2xl font-bold text-gray-900">Sold By Analysis</h2>
-                    <SoldByMonthOnMonthTable 
-                      data={allHistoricData}
-                      onRowClick={handleRowClick}
-                      selectedMetric={activeYoyMetric}
-                    />
+                    {filteredData && filteredData.length > 0 ? (
+                      <SoldByMonthOnMonthTable 
+                        data={filteredData}
+                        onRowClick={handleRowClick}
+                        selectedMetric={activeYoyMetric}
+                      />
+                    ) : (
+                      <div className="text-center py-8 text-slate-600">
+                        No sales data available for the selected filters. Try adjusting your filters or selecting a different location.
+                      </div>
+                    )}
                   </section>
                 </TabsContent>
 
                 <TabsContent value="paymentMethodAnalysis" className="mt-8">
                   <section className="space-y-4">
                     <h2 className="text-2xl font-bold text-gray-900">Payment Method Analysis</h2>
-                    <PaymentMethodMonthOnMonthTable 
-                      data={allHistoricData}
-                      onRowClick={handleRowClick}
-                      selectedMetric={activeYoyMetric}
-                    />
+                    {filteredData && filteredData.length > 0 ? (
+                      <PaymentMethodMonthOnMonthTable 
+                        data={filteredData}
+                        onRowClick={handleRowClick}
+                        selectedMetric={activeYoyMetric}
+                      />
+                    ) : (
+                      <div className="text-center py-8 text-slate-600">
+                        No payment data available for the selected filters. Try adjusting your filters or selecting a different location.
+                      </div>
+                    )}
                   </section>
                 </TabsContent>
               </Tabs>
