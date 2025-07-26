@@ -88,7 +88,7 @@ export const MonthOverMonthTable: React.FC<MonthOverMonthTableProps> = ({
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     // Create months for 2025 first (Jun to Jan in descending order)
-    for (let i = 5; i >= 0; i--) {
+    for (let i = 6; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
       months.push({
