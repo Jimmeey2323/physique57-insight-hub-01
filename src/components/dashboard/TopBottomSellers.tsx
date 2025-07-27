@@ -1,24 +1,31 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Award, AlertTriangle, Eye, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Award, AlertTriangle, Eye, BarChart3, Filter } from 'lucide-react';
 import { SalesData } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
 interface TopBottomSellersProps {
   data: SalesData[] | any[];
-  type: 'product' | 'category' | 'member' | 'seller' | 'trainers';
+  type: 'product' | 'category' | 'member' | 'seller' | 'trainers' | 'paymentMethod';
   onRowClick?: (row: any) => void;
   title?: string;
 }
 
-export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, onRowClick, title }) => {
+export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ 
+  data, 
+  type, 
+  onRowClick, 
+  title 
+}) => {
+  const [quickFilter, setQuickFilter] = useState<'all' | 'top' | 'bottom'>('all');
+  const [showCount, setShowCount] = useState(5);
+
   const getGroupedData = () => {
     if (type === 'trainers') {
-      // Handle trainer data which comes pre-processed
       return data;
     }
     
@@ -27,16 +34,19 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
       let key = '';
       switch (type) {
         case 'product':
-          key = item.cleanedProduct;
+          key = item.cleanedProduct || item.paymentItem || 'Unknown Product';
           break;
         case 'category':
-          key = item.cleanedCategory;
+          key = item.cleanedCategory || item.paymentCategory || 'Unknown Category';
           break;
         case 'member':
-          key = item.customerName;
+          key = item.customerName || 'Unknown Member';
           break;
         case 'seller':
-          key = item.soldBy;
+          key = item.soldBy || 'Unknown Seller';
+          break;
+        case 'paymentMethod':
+          key = item.paymentMethod || 'Unknown Method';
           break;
       }
       
@@ -50,14 +60,16 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
           atv: 0,
           auv: 0,
           asv: 0,
-          upt: 0
+          upt: 0,
+          rawData: []
         };
       }
       
-      acc[key].totalValue += item.paymentValue;
+      acc[key].totalValue += item.paymentValue || 0;
       acc[key].unitsSold += 1;
       acc[key].transactions += 1;
       acc[key].uniqueMembers.add(item.memberId);
+      acc[key].rawData.push(item);
       
       return acc;
     }, {} as Record<string, any>);
@@ -75,46 +87,97 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
   };
 
   const groupedData = getGroupedData();
-  const topSellers = groupedData.slice(0, 5);
-  const bottomSellers = groupedData.slice(-5).reverse();
+  
+  // Apply quick filter
+  const filteredData = groupedData.filter((item: any) => {
+    if (quickFilter === 'all') return true;
+    if (quickFilter === 'top') return item.totalValue > 0;
+    if (quickFilter === 'bottom') return item.totalValue === 0;
+    return true;
+  });
+
+  const topSellers = filteredData.slice(0, showCount);
+  const bottomSellers = filteredData.slice(-showCount).reverse();
+
+  const handleViewDetails = (seller: any) => {
+    console.log('View details for:', seller);
+    if (onRowClick) {
+      onRowClick(seller.rawData || seller);
+    }
+  };
+
+  const quickFilters = [
+    { value: 'all', label: 'All Items', count: groupedData.length },
+    { value: 'top', label: 'Active Items', count: groupedData.filter(item => item.totalValue > 0).length },
+    { value: 'bottom', label: 'Inactive Items', count: groupedData.filter(item => item.totalValue === 0).length }
+  ];
 
   const renderSellerCard = (sellers: any[], isTop: boolean) => (
     <Card className="bg-gradient-to-br from-white via-slate-50/50 to-white border-0 shadow-xl hover:shadow-2xl transition-all duration-500">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-3 text-xl">
-          {isTop ? (
-            <>
-              <div className="p-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500">
-                <Award className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <span className="bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
-                  {title || 'Top Performers'}
-                </span>
-                <p className="text-sm text-slate-600 font-normal">Highest revenue generators</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="p-2 rounded-full bg-gradient-to-r from-red-400 to-rose-500">
-                <AlertTriangle className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <span className="bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
-                  Improvement Opportunities
-                </span>
-                <p className="text-sm text-slate-600 font-normal">Areas for growth focus</p>
-              </div>
-            </>
-          )}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            {isTop ? (
+              <>
+                <div className="p-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500">
+                  <Award className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <span className="bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                    {title || 'Top Performers'}
+                  </span>
+                  <p className="text-sm text-slate-600 font-normal">Highest revenue generators</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-2 rounded-full bg-gradient-to-r from-red-400 to-rose-500">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <span className="bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
+                    Improvement Opportunities
+                  </span>
+                  <p className="text-sm text-slate-600 font-normal">Areas for growth focus</p>
+                </div>
+              </>
+            )}
+          </CardTitle>
+          <Badge variant="outline" className="text-blue-600 border-blue-600">
+            {sellers.length} items
+          </Badge>
+        </div>
+        
+        {/* Quick Filter Buttons */}
+        <div className="flex gap-2 mt-4">
+          {quickFilters.map(filter => (
+            <Button
+              key={filter.value}
+              variant={quickFilter === filter.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setQuickFilter(filter.value as any)}
+              className={`gap-2 text-xs ${
+                quickFilter === filter.value 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                  : 'text-gray-600 hover:bg-blue-50'
+              }`}
+            >
+              <Filter className="w-3 h-3" />
+              {filter.label}
+              <Badge variant="outline" className="ml-1 text-xs">
+                {filter.count}
+              </Badge>
+            </Button>
+          ))}
+        </div>
       </CardHeader>
+      
       <CardContent className="space-y-4">
         {sellers.map((seller, index) => (
           <div 
             key={seller.name || seller.Trainer} 
             className="group flex items-center justify-between p-4 rounded-xl bg-white shadow-sm border hover:shadow-md transition-all duration-300 cursor-pointer"
-            onClick={() => onRowClick?.(seller)}
+            onClick={() => handleViewDetails(seller)}
           >
             <div className="flex items-center gap-4 flex-1">
               <div className={cn(
@@ -185,13 +248,49 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
                   <p className="text-xs text-slate-400">{formatNumber(seller.uniqueMembers)} customers</p>
                 </>
               )}
-              <Button variant="ghost" size="sm" className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewDetails(seller);
+                }}
+              >
                 <Eye className="w-3 h-3 mr-1" />
                 View Details
               </Button>
             </div>
           </div>
         ))}
+        
+        {/* Show More Button */}
+        {filteredData.length > showCount && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCount(prev => prev + 5)}
+              className="w-full text-xs hover:bg-blue-50"
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              Show {Math.min(5, filteredData.length - showCount)} More
+            </Button>
+          </div>
+        )}
+
+        {showCount > 5 && (
+          <div className="mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCount(5)}
+              className="w-full text-xs text-gray-500 hover:text-gray-700"
+            >
+              Show Less
+            </Button>
+          </div>
+        )}
         
         <div className="mt-6 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg border">
           <h4 className="font-semibold text-slate-800 mb-2 flex items-center gap-2">

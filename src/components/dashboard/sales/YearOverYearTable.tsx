@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { SalesData, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from '../YearOnYearMetricTabs';
@@ -21,15 +22,25 @@ export const YearOverYearTable: React.FC<YearOverYearTableProps> = ({
 
   const parseDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
+    
+    // Handle DD/MM/YYYY format
     const ddmmyyyy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (ddmmyyyy) {
       const [, day, month, year] = ddmmyyyy;
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     }
     
+    // Handle YYYY/MM/DD format
     const yyyymmdd = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
     if (yyyymmdd) {
       const [, year, month, day] = yyyymmdd;
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    // Handle YYYY-MM-DD format
+    const yyyymmddDash = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (yyyymmddDash) {
+      const [, year, month, day] = yyyymmddDash;
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     }
     
@@ -38,6 +49,7 @@ export const YearOverYearTable: React.FC<YearOverYearTableProps> = ({
 
   const getMetricValue = (items: SalesData[], metric: YearOnYearMetricType) => {
     if (!items.length) return 0;
+    
     const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
     const totalTransactions = items.length;
     const uniqueMembers = new Set(items.map(item => item.memberId)).size;
@@ -84,10 +96,17 @@ export const YearOverYearTable: React.FC<YearOverYearTableProps> = ({
   };
 
   const processedData = useMemo(() => {
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
     
-    const results = monthNames.map((monthName, index) => {
-      const monthNum = index + 1;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Generate months up to current month
+    const results = [];
+    for (let i = 0; i <= currentMonth; i++) {
+      const monthName = monthNames[i];
+      const monthNum = i + 1;
       
       // Get 2024 data for this month
       const data2024 = data.filter(item => {
@@ -106,15 +125,15 @@ export const YearOverYearTable: React.FC<YearOverYearTableProps> = ({
       
       const growth = value2024 > 0 ? ((value2025 - value2024) / value2024) * 100 : 0;
       
-      return {
+      results.push({
         month: monthName,
         value2024,
         value2025,
         growth,
         data2024,
         data2025
-      };
-    });
+      });
+    }
     
     return results;
   }, [data, selectedMetric]);

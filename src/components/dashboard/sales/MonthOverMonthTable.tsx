@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { SalesData, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from '../YearOnYearMetricTabs';
@@ -21,15 +22,25 @@ export const MonthOverMonthTable: React.FC<MonthOverMonthTableProps> = ({
 
   const parseDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
+    
+    // Handle DD/MM/YYYY format
     const ddmmyyyy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (ddmmyyyy) {
       const [, day, month, year] = ddmmyyyy;
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     }
     
+    // Handle YYYY/MM/DD format
     const yyyymmdd = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
     if (yyyymmdd) {
       const [, year, month, day] = yyyymmdd;
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    // Handle YYYY-MM-DD format
+    const yyyymmddDash = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (yyyymmddDash) {
+      const [, year, month, day] = yyyymmddDash;
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     }
     
@@ -38,6 +49,7 @@ export const MonthOverMonthTable: React.FC<MonthOverMonthTableProps> = ({
 
   const getMetricValue = (items: SalesData[], metric: YearOnYearMetricType) => {
     if (!items.length) return 0;
+    
     const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
     const totalTransactions = items.length;
     const uniqueMembers = new Set(items.map(item => item.memberId)).size;
@@ -84,22 +96,26 @@ export const MonthOverMonthTable: React.FC<MonthOverMonthTableProps> = ({
   };
 
   const monthlyData = useMemo(() => {
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
     const months = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // Create months for 2025 first (Jun to Jan in descending order)
-    for (let i = 6; i >= 0; i--) {
+    // Create months for current year up to current month (in descending order)
+    for (let i = currentMonth; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
       months.push({
-        key: `2025-${String(monthNum).padStart(2, '0')}`,
-        display: `${monthName} 2025`,
-        year: 2025,
+        key: `${currentYear}-${String(monthNum).padStart(2, '0')}`,
+        display: `${monthName} ${currentYear}`,
+        year: currentYear,
         month: monthNum
       });
     }
     
-    // Then 2024 months (Dec to Jan in descending order)
+    // Then add 2024 months (Dec to Jan in descending order)
     for (let i = 11; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
@@ -116,7 +132,7 @@ export const MonthOverMonthTable: React.FC<MonthOverMonthTableProps> = ({
 
   const processedData = useMemo(() => {
     const productGroups = data.reduce((acc: Record<string, SalesData[]>, item) => {
-      const product = item.cleanedProduct || 'Unknown Product';
+      const product = item.cleanedProduct || item.paymentItem || 'Unknown Product';
       if (!acc[product]) {
         acc[product] = [];
       }
@@ -185,7 +201,7 @@ export const MonthOverMonthTable: React.FC<MonthOverMonthTableProps> = ({
                 Product Month-on-Month Analysis
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Monthly performance metrics by product (Jun 2025 - Jan 2024)
+                Monthly performance metrics by product (Current Year - Previous Year)
               </p>
             </div>
           </div>
