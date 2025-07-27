@@ -7,7 +7,7 @@ import { SalesData } from '@/types/dashboard';
 import { TopBottomSellers } from './TopBottomSellers';
 import { YearOverYearTable } from './sales/YearOverYearTable';
 import { MonthOverMonthTable } from './sales/MonthOverMonthTable';
-import { Charts } from './sales/Charts';
+import { SalesCharts } from './sales/Charts';
 import { DrillDownModal } from './DrillDownModal';
 
 interface SalesAnalyticsSectionProps {
@@ -115,7 +115,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Charts data={salesData} />
+              <SalesCharts data={salesData} />
             </CardContent>
           </Card>
 
@@ -169,7 +169,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         isOpen={isDrillDownOpen}
         onClose={() => setIsDrillDownOpen(false)}
         data={drillDownData}
-        title="Sales Analytics Drill-Down"
+        type="product"
       />
     </div>
   );
